@@ -1,0 +1,19 @@
+{
+  "name": "us-quest",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Adventures in Us — a branching choose-your-own-adventure love-quiz.",
+  "scripts": {
+    "dev": "shadow-cljs watch app",
+    "release": "shadow-cljs release app",
+    "test": "shadow-cljs compile test && node out/test.js",
+    "test:watch": "shadow-cljs watch test"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "shadow-cljs": "^3.4.11"
+  }
+}

@@ -1,0 +1,27 @@
+/* Adventures in Us — base styles. Full minimal/elegant theme lands in Milestone 7. */
+:root {
+  --bg: #fffafb;
+  --ink: #2b2330;
+  --accent: #e0607e;
+  --soft: #f4dfe6;
+  --max-width: 38rem;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.app {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 6rem;
+}
+
+h1 { font-weight: 700; letter-spacing: -0.01em; }

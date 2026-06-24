@@ -1,0 +1,7 @@
+/node_modules
+/out
+/public/js
+/.shadow-cljs
+/.cpcache
+/.nrepl-port
+*.log
