@@ -1,9 +1,43 @@
 (ns adventure.subs
-  "re-frame subscriptions: the UI's read-only views into app-db."
+  "re-frame subscriptions: the UI's read-only, derived views into app-db.
+   Derivations delegate to the pure `adventure.domain`."
   (:require
-   [re-frame.core :as rf]))
+   [re-frame.core :as rf]
+   [adventure.domain :as d]))
+
+(rf/reg-sub ::route   (fn [db _] (:route db)))
+(rf/reg-sub ::library (fn [db _] (:library db)))
+(rf/reg-sub ::trail   (fn [db _] (get-in db [:player :trail])))
 
 (rf/reg-sub
- ::route
+ ::library-list
+ :<- [::library]
+ (fn [library _]
+   (sort-by :adventure/title (vals library))))
+
+(rf/reg-sub
+ ::current-adventure
  (fn [db _]
-   (:route db)))
+   (get-in db [:library (get-in db [:player :adventure-id])])))
+
+(rf/reg-sub
+ ::path-steps
+ :<- [::current-adventure]
+ :<- [::trail]
+ (fn [[adv trail] _]
+   (when (and adv (seq trail))
+     (d/path-steps adv (vec trail)))))
+
+(rf/reg-sub
+ ::current-passage
+ :<- [::current-adventure]
+ :<- [::trail]
+ (fn [[adv trail] _]
+   (when (and adv (seq trail))
+     (d/passage adv (last trail)))))
+
+(rf/reg-sub
+ ::at-start?
+ :<- [::trail]
+ (fn [trail _]
+   (<= (count trail) 1)))

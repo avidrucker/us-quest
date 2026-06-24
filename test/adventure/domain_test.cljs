@@ -108,3 +108,19 @@
                      (d/add-passage meet)      ; becomes start
                      (d/add-passage orphan))]  ; never targeted
       (is (contains? (problem-types (d/validate adv)) :problem/unreachable)))))
+
+(deftest tracing-a-path
+  (testing "path-steps pairs each visited passage with the choice that led onward; the last (current) step has no chosen choice"
+    (let [meet  (d/new-passage "Where did we first meet?")
+          end   (d/new-passage "💛")
+          c     {:choice/label "the library" :choice/target (:passage/id end)}
+          adv   (-> (d/new-adventure "Us")
+                    (d/add-passage meet)
+                    (d/add-passage end)
+                    (d/add-choice (:passage/id meet) c))
+          steps (d/path-steps adv [(:passage/id meet) (:passage/id end)])]
+      (is (= 2 (count steps)))
+      (is (= (d/passage adv (:passage/id meet)) (:step/passage (first steps))))
+      (is (= (:passage/id end) (:choice/target (:step/choice (first steps)))))
+      (is (nil? (:step/choice (second steps))))
+      (is (= end (:step/passage (second steps)))))))

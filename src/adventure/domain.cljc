@@ -108,6 +108,26 @@
   [:adventure/adventure :adventure/choice => (? :adventure/passage)]
   (some->> (:choice/target choice) (passage adventure)))
 
+(>defn path-steps
+  "Given an `adventure` and a `trail` (vector of visited passage ids, the current
+   one last), returns a vector of step maps in visit order. Each step is:
+
+     * `:step/passage` - the passage at that point in the trail
+     * `:step/choice`  - the choice that led to the next passage, or nil for the
+                         last (current) step
+
+   This is the view-model the player uses to render the append-and-scroll trail."
+  [adventure trail]
+  [:adventure/adventure [:vector :passage/id] => [:vector map?]]
+  (mapv (fn [id next-id]
+          (let [p (passage adventure id)]
+            {:step/passage p
+             :step/choice  (when next-id
+                             (first (filter #(= next-id (:choice/target %))
+                                            (:passage/choices p))))}))
+        trail
+        (concat (rest trail) [nil])))
+
 ;; ---------------------------------------------------------------------------
 ;; Editing
 ;; ---------------------------------------------------------------------------
