@@ -46,6 +46,7 @@ h1 {
   color: var(--ink);
   padding: 0.6rem 1rem;
   border-radius: var(--radius);
+  white-space: nowrap;            /* labels stay on one line; never wrap to 2 lines */
   transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(224, 96, 126, 0.12); }
@@ -76,7 +77,9 @@ h1 {
 .passage:not(.active) .passage-text { color: var(--muted); }
 
 .choices { display: grid; gap: 0.6rem; margin-top: 1.75rem; }
-.btn.choice { text-align: left; padding: 0.8rem 1.1rem; }
+/* Choice buttons hold sentence-length labels (e.g. Japanese phrase + gloss), so
+   they're the one button that may wrap — full-width, left-aligned. */
+.btn.choice { text-align: left; padding: 0.8rem 1.1rem; white-space: normal; }
 .btn.choice:hover { border-color: var(--accent); background: var(--accent-soft); }
 
 .ending { margin-top: 2rem; text-align: center; animation: fade-in 0.5s ease both; }
@@ -84,7 +87,10 @@ h1 {
 
 /* Library extras */
 .new-btn { margin-bottom: 1.5rem; }
-.card-actions { display: flex; gap: 0.5rem; }
+.card-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+/* a long adventure title must not squeeze the action buttons into wrapping */
+.card-actions .btn { flex-shrink: 0; }
+.adventure-title { min-width: 0; }
 
 .share-banner {
   display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
