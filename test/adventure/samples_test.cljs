@@ -63,7 +63,31 @@
   (testing "each built-in returns the same :adventure/id across calls (stable identity)"
     (is (= (:adventure/id (samples/sample-adventure))   (:adventure/id (samples/sample-adventure))))
     (is (= (:adventure/id (samples/cogbias-intro-adventure))  (:adventure/id (samples/cogbias-intro-adventure))))
-    (is (= (:adventure/id (samples/japanese-intro-adventure)) (:adventure/id (samples/japanese-intro-adventure)))))
+    (is (= (:adventure/id (samples/japanese-intro-adventure)) (:adventure/id (samples/japanese-intro-adventure))))
+    (is (= (:adventure/id (samples/dungeon-crawl-adventure))  (:adventure/id (samples/dungeon-crawl-adventure)))))
   (testing "the built-ins have distinct ids"
     (let [ids (map :adventure/id (samples/built-in-adventures))]
       (is (= (count ids) (count (set ids)))))))
+
+(deftest dungeon-crawl-is-valid-with-many-endings
+  (let [adv      (samples/dungeon-crawl-adventure)
+        passages (vals (:adventure/passages adv))
+        endings  (filter d/ending? passages)
+        ending-blob (str/join " " (map :passage/text endings))]
+    (testing "the dungeon crawl passes validation (reachable, no dangling targets)"
+      (is (d/valid? adv)))
+    (testing "it is a substantial tree with several endings"
+      (is (>= (count passages) 14))
+      (is (>= (count endings) 5)))
+    (testing "the start offers multiple branches (incl. the back-to-tavern out)"
+      (is (>= (count (d/choices (d/start-passage adv))) 3)))
+    (testing "it includes a secret 'friend' ending and at least one death ending"
+      (is (re-find #"(?i)friend" ending-blob))
+      (is (str/includes? ending-blob "💀")))
+    (testing "paths converge: the cavern is reachable from more than one passage"
+      (let [cavern-targets (for [p passages
+                                 c (:passage/choices p)
+                                 :let [t (d/passage adv (:choice/target c))]
+                                 :when (str/includes? (:passage/text t) "sleeps atop a mountain of gold")]
+                             (:passage/id p))]
+        (is (>= (count (distinct cavern-targets)) 2))))))

@@ -17,6 +17,7 @@
 (def sample-adventure-id   #uuid "115a3e1d-0000-4000-8000-000000000001")
 (def cogbias-adventure-id  #uuid "115a3e1d-0000-4000-8000-000000000002")
 (def japanese-adventure-id #uuid "115a3e1d-0000-4000-8000-000000000003")
+(def dungeon-adventure-id  #uuid "115a3e1d-0000-4000-8000-000000000004")
 
 (defn sample-adventure
   "Returns a fresh copy of the demo adventure (fixed structure + stable id)."
@@ -145,12 +146,86 @@
         (retry r-sayounara q-name)
         (retry r-thanks2   q-close))))
 
+(defn dungeon-crawl-adventure
+  "Returns a fresh copy of a pure choice-driven D&D dungeon crawl — the first
+   demo with stakes: win / lose / secret endings, path convergence, and a few
+   laughs. There is no state; the treasure path is encoded structurally (a
+   separate `cavern-rich` passage), not via variables."
+  []
+  (let [;; rooms
+        entrance (assoc (d/new-passage "🔥 Torchlight licks the mouth of the Cracked Crypt. A heavy oak door stands ahead; a narrow crack splits the wall to your left.") :passage/image "🔥")
+        goblin   (assoc (d/new-passage "👹 Beyond the door a goblin gnaws a bone — and spots you. A rusty sword leans within reach.") :passage/image "👹")
+        fightw   (assoc (d/new-passage "🗝️ You snatch the blade and lunge! The goblin shrieks and flees, dropping an iron key. Ahead: a squat wooden chest and a passage into the dark.") :passage/image "🗝️")
+        gotgold  (assoc (d/new-passage "💰 Your blade taps the lid — just wood. Inside, a hoard of gold coins! You stuff your pockets and creep onward.") :passage/image "💰")
+        tunnel   (d/new-passage "You wriggle through the crack and drop onto a high ledge — overlooking a vast cavern below.")
+        cavern   (assoc (d/new-passage "🐉 A great dragon sleeps atop a mountain of gold. The exit tunnel beckons across the cavern.") :passage/image "🐉")
+        cavernr  (assoc (d/new-passage "🐉 The same sleeping dragon, the same glittering hoard — but your pockets already jingle with stolen gold. The exit is so close.") :passage/image "🐉")
+        wakes    (assoc (d/new-passage "🔥 The dragon's eye snaps open. It rears back, throat glowing!") :passage/image "🔥")
+        talk     (d/new-passage "The dragon blinks, head tilting. \"Few visitors bother with hello,\" it rumbles, almost pleased.")
+        ;; endings
+        e-chicken (assoc (d/new-passage "🍺 You decide glory can wait, and head back to the tavern for a warm ale. Live to crawl another day! (the end)") :passage/image "🍺")
+        e-mimic   (assoc (d/new-passage "💀 The chest sprouts teeth and CHOMPS. A mimic — classic. Adventuring is hard. (the end)") :passage/image "💀")
+        e-triumph (assoc (d/new-passage "🏆 You slip into daylight with a fortune and your skin intact. Bards will sing of this. (the end)") :passage/image "🏆")
+        e-escape  (assoc (d/new-passage "😮‍💨 You burst out into the sun, heart hammering — mostly empty-handed, gloriously alive. (the end)") :passage/image "😮‍💨")
+        e-roasted (assoc (d/new-passage "🔥 You raise your blade against a dragon. Bold. Brief. Extra crispy. 💀 (the end)") :passage/image "🔥")
+        e-friend  (assoc (d/new-passage "🐉💛 You and the dragon trade tales until dawn. It presses a single coin into your hand — \"for the road, friend.\" The rarest ending of all. (the end)") :passage/image "🐉")
+        id   :passage/id
+        step (fn [adv from to label] (d/add-choice adv (id from) {:choice/label label :choice/target (id to)}))]
+    (-> (assoc (d/new-adventure "Into the Cracked Crypt 🐉") :adventure/id dungeon-adventure-id)
+        (d/add-passage entrance)        ; first → the start
+        (d/add-passage goblin)
+        (d/add-passage fightw)
+        (d/add-passage gotgold)
+        (d/add-passage tunnel)
+        (d/add-passage cavern)
+        (d/add-passage cavernr)
+        (d/add-passage wakes)
+        (d/add-passage talk)
+        (d/add-passage e-chicken)
+        (d/add-passage e-mimic)
+        (d/add-passage e-triumph)
+        (d/add-passage e-escape)
+        (d/add-passage e-roasted)
+        (d/add-passage e-friend)
+        ;; entrance
+        (step entrance goblin    "Shoulder open the oak door")
+        (step entrance tunnel    "Squeeze through the crack")
+        (step entrance e-chicken "Actually… back to the tavern 🍺")
+        ;; goblin
+        (step goblin fightw "Grab the rusty sword and fight")
+        (step goblin cavern "Sneak past in the shadows")
+        (step goblin cavern "Offer it your trail rations")
+        ;; chest after the fight
+        (step fightw e-mimic "Fling the chest open")
+        (step fightw gotgold "Tap it with your blade first")
+        (step fightw cavern  "Ignore it and press on")
+        ;; got-gold → the "rich" cavern (paths to treasure endings)
+        (step gotgold cavernr "Onward, pockets heavy")
+        ;; the crack drops you into the same cavern (convergence)
+        (step tunnel cavern "Drop down into the cavern")
+        ;; cavern (no gold yet)
+        (step cavern wakes    "Snatch a handful of gold")
+        (step cavern e-escape "Tiptoe to the exit")
+        (step cavern talk     "Clear your throat and say hello")
+        ;; cavern-rich (already carrying gold)
+        (step cavernr e-triumph "Quit while ahead — tiptoe out")
+        (step cavernr wakes     "Greed! grab even more")
+        (step cavernr talk      "Say hello to the dragon")
+        ;; dragon wakes
+        (step wakes e-escape  "Sprint for the exit")
+        (step wakes e-roasted "Stand and fight")
+        (step wakes e-escape  "Throw the gold and run")
+        ;; dragon talk
+        (step talk e-friend "Ask to share a story")
+        (step talk e-escape "Lose your nerve and bolt"))))
+
 (defn built-in-adventures
   "Returns fresh copies of all built-in demo adventures (each with its stable id)."
   []
   [(sample-adventure)
    (cogbias-intro-adventure)
-   (japanese-intro-adventure)])
+   (japanese-intro-adventure)
+   (dungeon-crawl-adventure)])
 
 (defn built-in-titles
   "Set of the built-in demo titles. Used to retire legacy random-id auto-seeds
