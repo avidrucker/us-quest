@@ -40,9 +40,9 @@
         (is (= [start] (get-in db2 [:player :trail])))))))
 
 (deftest initial-db-from-storage
-  (testing "With no stored library, the initial db is seeded with the sample adventure"
+  (testing "With no stored library, the initial db is seeded with the built-in demo adventures"
     (let [db1 (e/initial-db nil)]
-      (is (= 1 (count (:library db1))))
+      (is (= 2 (count (:library db1))))
       (is (= :library (:route db1)))))
   (testing "With a stored library, the initial db uses it verbatim (no re-seed)"
     (let [adv (samples/sample-adventure)
@@ -70,10 +70,10 @@
         (is (= 2 (count (:library db1))))
         (is (= mine (get-in db1 [:library (:adventure/id mine)])))
         (is (= shared (get-in db1 [:library (:adventure/id shared)])))))
-    (testing "With no incoming adventure, init behaves normally (library route, sample seeded)"
+    (testing "With no incoming adventure, init behaves normally (library route, demos seeded)"
       (let [db1 (e/initial-db-with-share nil nil)]
         (is (= :library (:route db1)))
-        (is (= 1 (count (:library db1))))))))
+        (is (= 2 (count (:library db1))))))))
 
 (deftest authoring-in-the-editor
   (let [adv    (samples/sample-adventure)

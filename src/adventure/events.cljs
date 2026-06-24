@@ -15,12 +15,13 @@
 (defn initial-db
   "Returns the initial app-db given a `stored-library` (possibly nil/empty). When
    a stored library exists it is used as-is; otherwise the library is seeded with
-   the sample adventure."
+   the built-in demo adventures."
   [stored-library]
   (if (seq stored-library)
     (assoc db/default-db :library stored-library)
-    (let [adv (samples/sample-adventure)]
-      (assoc-in db/default-db [:library (:adventure/id adv)] adv))))
+    (let [demos [(samples/sample-adventure) (samples/cogbias-intro-adventure)]]
+      (assoc db/default-db :library
+             (into {} (map (juxt :adventure/id identity)) demos)))))
 
 (defn put-adventure
   "Stores `adventure` in the library of `db` under its id."

@@ -19,3 +19,15 @@
                             :when (and nxt (seq (d/choices nxt)))]
                         nxt)]
         (is (seq followups))))))
+
+(deftest cogbias-intro-is-valid-and-linear
+  (let [adv (samples/cogbias-intro-adventure)]
+    (testing "the cognitive-biases intro passes validation"
+      (is (d/valid? adv)))
+    (testing "it is a longer, story-driven chain ending on a terminal passage"
+      (is (>= (count (:adventure/passages adv)) 8))
+      ;; mostly linear: the start advances via a single choice
+      (is (= 1 (count (d/choices (d/start-passage adv)))))
+      ;; exactly one ending (the final passage)
+      (let [endings (filter d/ending? (vals (:adventure/passages adv)))]
+        (is (= 1 (count endings)))))))
