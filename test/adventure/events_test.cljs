@@ -5,6 +5,7 @@
    [cljs.test :refer [deftest is testing]]
    [adventure.db :as db]
    [adventure.domain :as d]
+   [adventure.portability :as p]
    [adventure.samples :as samples]
    [adventure.events :as e]))
 
@@ -142,3 +143,22 @@
                     (e/editor-resume nil))]
         (is (= :editor (:route db1)))
         (is (nil? (get-in db1 [:player :preview-adventure])))))))
+
+(deftest importing-a-file
+  (let [adv (samples/sample-adventure)
+        edn (p/export-edn adv)]
+    (testing "a valid file is added to the library and persisted"
+      (let [{:keys [db] :store/keys [save-library!]}
+            (e/import-text {:db db/default-db} [::e/import edn])]
+        (is (= adv (get-in db [:library (:adventure/id adv)])))
+        (is (= :ok (get-in db [:ui/notice :notice/kind])))
+        (is (= (:library db) save-library!))))
+    (testing "an id collision is non-destructive: a fresh id is assigned, original kept"
+      (let [db0 (assoc-in db/default-db [:library (:adventure/id adv)] adv)
+            {:keys [db]} (e/import-text {:db db0} [::e/import edn])]
+        (is (= 2 (count (:library db))))
+        (is (contains? (:library db) (:adventure/id adv)))))
+    (testing "a malformed file surfaces an :error notice and leaves the library untouched"
+      (let [{:keys [db]} (e/import-text {:db db/default-db} [::e/import "{:not :an-adventure}"])]
+        (is (= :error (get-in db [:ui/notice :notice/kind])))
+        (is (empty? (:library db)))))))

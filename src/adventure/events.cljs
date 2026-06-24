@@ -6,6 +6,7 @@
    [re-frame.core :as rf]
    [adventure.db :as db]
    [adventure.domain :as d]
+   [adventure.portability :as portability]
    [adventure.samples :as samples]))
 
 ;; ---------------------------------------------------------------------------
@@ -80,6 +81,40 @@
   "Clears any displayed share URL."
   [db _]
   (dissoc db :ui/share-url))
+
+;; --- Import / export -------------------------------------------------------
+
+(defn set-notice
+  "Records a transient UI notice of `kind` (:ok | :error) with message `msg`."
+  [db kind msg]
+  (assoc db :ui/notice {:notice/kind kind :notice/msg msg}))
+
+(defn dismiss-notice
+  "Clears any displayed notice."
+  [db _]
+  (dissoc db :ui/notice))
+
+(defn fresh-id-if-collision
+  "If `adventure`'s id already names an entry in `library`, returns it with a
+   fresh id (non-destructive import — never clobbers an existing adventure)."
+  [library adventure]
+  (if (contains? library (:adventure/id adventure))
+    (assoc adventure :adventure/id (random-uuid))
+    adventure))
+
+(defn import-text
+  "Parses imported file `text`. On success adds the adventure to the library
+   (with a fresh id on collision) and persists; on failure surfaces an error
+   notice and leaves the library untouched."
+  [{:keys [db]} [_ text]]
+  (let [{:keys [ok error]} (portability/parse-imported text)]
+    (if ok
+      (let [adv (fresh-id-if-collision (:library db) ok)
+            db' (-> db
+                    (put-adventure adv)
+                    (set-notice :ok (str "Imported “" (:adventure/title adv) "”.")))]
+        {:db db' :store/save-library! (:library db')})
+      {:db (set-notice db :error error)})))
 
 (defn start-playthrough
   "Begins playing adventure `adventure-id`: routes to the player and starts the
@@ -266,6 +301,22 @@
 
 (rf/reg-event-db ::share-ready    share-ready)
 (rf/reg-event-db ::dismiss-share  dismiss-share)
+
+(rf/reg-event-fx
+ ::export-adventure
+ (fn [{:keys [db]} [_ id]]
+   (let [adv (get-in db [:library id])]
+     {:io/download-edn! {:filename (portability/filename adv)
+                         :content  (portability/export-edn adv)}})))
+
+(rf/reg-event-fx
+ ::import-file
+ (fn [_ [_ file]]
+   {:io/read-file! {:file file}}))
+
+(rf/reg-event-fx ::import-text   import-text)
+(rf/reg-event-db ::import-failed (fn [db [_ msg]] (set-notice db :error msg)))
+(rf/reg-event-db ::dismiss-notice dismiss-notice)
 
 (rf/reg-event-fx
  ::share-adventure

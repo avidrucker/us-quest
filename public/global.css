@@ -86,7 +86,19 @@ h1 {
 .ending-note { font-size: 1.3rem; color: var(--accent); margin-bottom: 1rem; }
 
 /* Library extras */
+.library-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
+.library-actions .new-btn { margin-bottom: 0; }
 .new-btn { margin-bottom: 1.5rem; }
+
+.notice {
+  display: flex; align-items: center; gap: 0.6rem; justify-content: space-between;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 0.6rem 1rem; margin-bottom: 1.25rem;
+}
+.notice .notice-msg { flex: 1; }
+.notice.ok    { background: var(--accent-soft); }
+.notice.error { background: #fde8ec; border-color: #f3b6c2; color: #8a2c3f; }
+
 .card-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 /* a long adventure title must not squeeze the action buttons into wrapping */
 .card-actions .btn { flex-shrink: 0; }

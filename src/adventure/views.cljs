@@ -30,14 +30,35 @@
                         :on-focus #(.select (.-target %))}]
      [:button.btn.ghost {:on-click #(rf/dispatch [::events/dismiss-share])} "✕"]]))
 
+(defn notice-banner []
+  (when-let [{:notice/keys [kind msg]} @(rf/subscribe [::subs/notice])]
+    [:div.notice {:class (name kind)}
+     [:span.notice-msg msg]
+     [:button.btn.ghost {:on-click #(rf/dispatch [::events/dismiss-notice])} "✕"]]))
+
+(def ^:private import-input-id "import-file-input")
+
+(defn- pick-import-file [e]
+  (let [input (.-target e)
+        file  (some-> (.-files input) (aget 0))]
+    (when file (rf/dispatch [::events/import-file file]))
+    (set! (.-value input) "")))           ; reset so the same file re-triggers
+
 (defn library-view []
   (let [adventures @(rf/subscribe [::subs/library-list])]
     [:section.library
      [:h1 "Adventures in Us " [:span.heart "💛"]]
      [:p.subtitle "A little choose-your-own-adventure, made for you."]
      [share-banner]
-     [:button.btn.primary.new-btn
-      {:on-click #(rf/dispatch [::events/start-new-adventure])} "+ New adventure"]
+     [notice-banner]
+     [:input {:type "file" :accept ".edn,application/edn"
+              :id import-input-id :style {:display "none"}
+              :on-change pick-import-file}]
+     [:div.library-actions
+      [:button.btn.primary.new-btn
+       {:on-click #(rf/dispatch [::events/start-new-adventure])} "+ New adventure"]
+      [:button.btn.ghost
+       {:on-click #(.click (.getElementById js/document import-input-id))} "Import file"]]
      (if (empty? adventures)
        [:p.empty-state "No adventures yet — tap " [:b "+ New adventure"] " to write your first one. 💛"]
        [:ul.adventure-list
@@ -50,6 +71,8 @@
              {:on-click #(rf/dispatch [::events/edit-adventure (:adventure/id adv)])} "Edit"]
             [:button.btn.ghost
              {:on-click #(rf/dispatch [::events/share-adventure adv])} "Share"]
+            [:button.btn.ghost
+             {:on-click #(rf/dispatch [::events/export-adventure (:adventure/id adv)])} "Export"]
             [:button.btn.primary
              {:on-click #(rf/dispatch [::events/start-playthrough (:adventure/id adv)])} "Play ▸"]]])])
      [:footer.made-with "made with 💛"]]))

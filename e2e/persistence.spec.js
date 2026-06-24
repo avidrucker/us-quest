@@ -30,6 +30,7 @@ test('a saved adventure survives a page reload', async ({ page }) => {
 });
 
 test('first run seeds the built-in demos into the library', async ({ page }) => {
-  await expect(page.locator('.adventure-card')).toHaveCount(3);
+  // Count is relative, not hardcoded — built-in demos get added over time.
   await expect(page.locator('.adventure-card', { hasText: 'Hajimemashite' })).toBeVisible();
+  expect(await page.locator('.adventure-card').count()).toBeGreaterThanOrEqual(3);
 });

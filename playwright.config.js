@@ -28,7 +28,11 @@ module.exports = defineConfig({
   projects: [{ name: 'chrome' }],
   webServer: {
     command: 'npm run dev',
-    url: `${BASE}/index.html`, // dev-http returns 404 at "/", 200 at /index.html
+    // Wait on the COMPILED bundle, not the static index.html — dev-http serves
+    // index.html immediately (before the ~45s first compile), so gating on it
+    // races the build and the app boots with no JS. js/main.js exists only once
+    // the build completes.
+    url: `${BASE}/js/main.js`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

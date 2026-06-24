@@ -46,6 +46,33 @@
      (some-> (.. js/navigator -clipboard) (.writeText url))
      (rf/dispatch [:adventure.events/share-ready url]))))
 
+;; Download `content` as a file named `filename` (used to export an adventure
+;; as .edn). Builds a Blob, clicks a transient <a download>, then cleans up.
+(rf/reg-fx
+ :io/download-edn!
+ (fn [{:keys [filename content]}]
+   (let [blob (js/Blob. #js [content] #js {:type "application/edn"})
+         url  (.createObjectURL js/URL blob)
+         a    (.createElement js/document "a")]
+     (set! (.-href a) url)
+     (set! (.-download a) filename)
+     (.appendChild (.-body js/document) a)
+     (.click a)
+     (.removeChild (.-body js/document) a)
+     (.revokeObjectURL js/URL url))))
+
+;; Read a picked File as text and feed it back through events for parsing.
+(rf/reg-fx
+ :io/read-file!
+ (fn [{:keys [file]}]
+   (when file
+     (let [rdr (js/FileReader.)]
+       (set! (.-onload rdr)
+             (fn [_] (rf/dispatch [:adventure.events/import-text (.-result rdr)])))
+       (set! (.-onerror rdr)
+             (fn [_] (rf/dispatch [:adventure.events/import-failed "Couldn't read that file."])))
+       (.readAsText rdr file)))))
+
 ;; After a choice appends a passage, scroll the newest (active) passage into
 ;; view — the "scroll" half of the append-and-scroll trail. Runs after the
 ;; re-render so the new node exists; a no-op when the element is absent.

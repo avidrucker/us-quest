@@ -9,6 +9,7 @@
 (rf/reg-sub ::library   (fn [db _] (:library db)))
 (rf/reg-sub ::trail     (fn [db _] (get-in db [:player :trail])))
 (rf/reg-sub ::share-url (fn [db _] (:ui/share-url db)))
+(rf/reg-sub ::notice    (fn [db _] (:ui/notice db)))
 
 (rf/reg-sub
  ::library-list
