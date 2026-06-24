@@ -97,8 +97,16 @@ h1 {
   border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem 0.6rem; background: #fff;
 }
 
+.empty-state {
+  text-align: center; color: var(--muted);
+  border: 1px dashed var(--line); border-radius: var(--radius);
+  padding: 2rem 1rem;
+}
+.made-with { margin-top: 3rem; text-align: center; color: var(--muted); font-size: 0.8rem; }
+
 /* Editor */
-.editor-bar { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+.editor-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.editor-bar-right { display: flex; gap: 0.5rem; }
 .title-input {
   font: inherit; font-size: 1.5rem; font-weight: 700;
   width: 100%; border: none; border-bottom: 2px solid var(--line);
@@ -144,6 +152,12 @@ h1 {
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 460px) {
+  .adventure-card { flex-direction: column; align-items: flex-start; }
+  .card-actions { width: 100%; justify-content: flex-end; }
+  .choice-row { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

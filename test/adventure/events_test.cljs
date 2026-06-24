@@ -108,4 +108,17 @@
                     (e/editor-cancel nil))]
         (is (= :library (:route db1)))
         (is (= {} (:editor db1)))
-        (is (= adv (get-in db1 [:library adv-id])))))))
+        (is (= adv (get-in db1 [:library adv-id])))))
+    (testing "Preview plays the working copy from its start without saving, keeping it editable"
+      (let [editing (e/edit-adventure db0 [::e/edit adv-id])
+            db1     (e/editor-preview editing nil)]
+        (is (= :player (:route db1)))
+        (is (= (:adventure/start adv) (first (get-in db1 [:player :trail]))))
+        (is (= adv (get-in db1 [:player :preview-adventure])))
+        (is (= adv (get-in db1 [:editor :adventure])))))
+    (testing "Resuming from a preview returns to the editor and drops the preview snapshot"
+      (let [db1 (-> db0 (e/edit-adventure [::e/edit adv-id])
+                    (e/editor-preview nil)
+                    (e/editor-resume nil))]
+        (is (= :editor (:route db1)))
+        (is (nil? (get-in db1 [:player :preview-adventure])))))))
