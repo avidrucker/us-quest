@@ -7,6 +7,12 @@
 *.log
 /.claude/worktrees/
 
+# Playwright e2e
+/test-results
+/playwright-report
+/blob-report
+/.playwright
+
 # Personal adventure content drafts — keep private, do not push
 /content/
 /docs/research-questions.md

@@ -42,8 +42,12 @@ Function contracts are enforced with [malli](https://github.com/metosin/malli) +
 npm install
 npm run dev      # shadow-cljs watch → http://localhost:8080/index.html
 npm test         # compile + run the cljs.test suite (node)
+npm run e2e      # Playwright browser smoke tests (boots the dev build itself)
 npm run release  # optimized build into public/js
 ```
+
+`npm run e2e` uses the system Chrome (`channel: 'chrome'`); its `webServer`
+config starts `npm run dev` automatically, so no separate server is needed.
 
 ## Tech
 

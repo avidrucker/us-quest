@@ -7,13 +7,15 @@
     "dev": "shadow-cljs watch app",
     "release": "shadow-cljs release app",
     "test": "shadow-cljs compile test && node out/test.js",
-    "test:watch": "shadow-cljs watch test"
+    "test:watch": "shadow-cljs watch test",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "shadow-cljs": "^3.4.11"
   }
 }
