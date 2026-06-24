@@ -19,7 +19,9 @@
   [stored-library]
   (if (seq stored-library)
     (assoc db/default-db :library stored-library)
-    (let [demos [(samples/sample-adventure) (samples/cogbias-intro-adventure)]]
+    (let [demos [(samples/sample-adventure)
+                 (samples/cogbias-intro-adventure)
+                 (samples/japanese-intro-adventure)]]
       (assoc db/default-db :library
              (into {} (map (juxt :adventure/id identity)) demos)))))
 

@@ -80,3 +80,58 @@
         (step p7 p8  "Oh dear")
         (step p8 p9  "Go on")
         (step p9 p10 "Huh."))))
+
+(defn japanese-intro-adventure
+  "Returns a fresh copy of a beginner Japanese-greeting adventure: a first-time
+   meeting at a party where the player learns three phrases in order —
+   はじめまして (hajimemashite), ～です (~ desu, \"I'm ~.\"), and よろしくおねがいします
+   (yoroshiku onegai shimasu). Each question offers the correct phrase plus
+   plausible-but-wrong ones; a wrong choice routes to a short, in-character
+   reaction from the NPC (あいこ / Aiko) that loops back so the player can retry.
+   Built entirely through the pure domain API; the only ending is the success
+   payoff."
+  []
+  (let [;; questions
+        q-greet (assoc (d/new-passage "🎉 You're at a party. A friendly woman bows and smiles: 「はじめまして！」 (hajimemashite — \"nice to meet you\"). How do you reply?")
+                       :passage/image "🎎")
+        q-name  (d/new-passage "She brightens: 「わたしは あいこ です。」 (watashi wa Aiko desu — \"I'm Aiko.\") Now introduce yourself — \"I'm ___.\"")
+        q-close (d/new-passage "あいこ smiles warmly and waits. Wrap up the introduction the polite way.")
+        ;; reactions to wrong answers — each loops back to its question
+        r-arigatou (d/new-passage "She tilts her head, amused: \"Thank you…? 😅\" — ありがとう (arigatou) means \"thank you,\" not a greeting.")
+        r-sumimasen (d/new-passage "She giggles: \"No need to apologize! 😄\" — すみません (sumimasen) means \"excuse me / sorry.\"")
+        r-konbanwa (d/new-passage "\"Good evening to you too! 🌙\" she laughs — こんばんは (konbanwa) is a greeting, but she asked your name.")
+        r-sayounara (d/new-passage "She blinks, then laughs: \"Goodbye already?! 😂 You just got here!\" — さようなら (sayounara) means \"goodbye.\"")
+        r-thanks2 (d/new-passage "\"Close in spirit! 💬\" — ありがとう (arigatou) is \"thank you.\" To finish an introduction politely, there's a set phrase.")
+        ;; the one ending: success
+        e-done  (assoc (d/new-passage "あいこ beams and bows: 「よろしく おねがいします！」 🎉 You made your first introduction in Japanese — はじめまして, ～です, and よろしくおねがいします. Yatta! 🌸")
+                       :passage/image "🌸")
+        id      :passage/id
+        ;; a "try again" loop: `from`'s single choice points back to `to`
+        retry (fn [adv from to] (d/add-choice adv (id from) {:choice/label "↩ Try again" :choice/target (id to)}))]
+    (-> (d/new-adventure "Hajimemashite! A first meeting in Japanese 🇯🇵")
+        (d/add-passage q-greet)        ; first passage → the start
+        (d/add-passage q-name)
+        (d/add-passage q-close)
+        (d/add-passage r-arigatou)
+        (d/add-passage r-sumimasen)
+        (d/add-passage r-konbanwa)
+        (d/add-passage r-sayounara)
+        (d/add-passage r-thanks2)
+        (d/add-passage e-done)         ; no choices → the (only) ending
+        ;; greeting: one correct, two wrong (each loops back)
+        (d/add-choice (id q-greet) {:choice/label "はじめまして (hajimemashite) — nice to meet you" :choice/target (id q-name)})
+        (d/add-choice (id q-greet) {:choice/label "ありがとう (arigatou) — thank you"               :choice/target (id r-arigatou)})
+        (d/add-choice (id q-greet) {:choice/label "すみません (sumimasen) — excuse me / sorry"        :choice/target (id r-sumimasen)})
+        ;; self-introduction: one correct, two wrong
+        (d/add-choice (id q-name) {:choice/label "（なまえ）です ( ___ desu) — \"I'm ___.\"" :choice/target (id q-close)})
+        (d/add-choice (id q-name) {:choice/label "こんばんは (konbanwa) — good evening"      :choice/target (id r-konbanwa)})
+        (d/add-choice (id q-name) {:choice/label "さようなら (sayounara) — goodbye"          :choice/target (id r-sayounara)})
+        ;; closing: one correct, one wrong
+        (d/add-choice (id q-close) {:choice/label "よろしく おねがいします (yoroshiku onegai shimasu) — pleased to meet you" :choice/target (id e-done)})
+        (d/add-choice (id q-close) {:choice/label "ありがとう (arigatou) — thank you"                                    :choice/target (id r-thanks2)})
+        ;; wrong-answer reactions loop back to their question
+        (retry r-arigatou  q-greet)
+        (retry r-sumimasen q-greet)
+        (retry r-konbanwa  q-name)
+        (retry r-sayounara q-name)
+        (retry r-thanks2   q-close))))

@@ -2,6 +2,7 @@
   "Guards the built-in demo adventure: it must be a valid, multi-level tree so it
    both works and shows off branching."
   (:require
+   [clojure.string :as str]
    [cljs.test :refer [deftest is testing]]
    [adventure.domain :as d]
    [adventure.samples :as samples]))
@@ -31,3 +32,29 @@
       ;; exactly one ending (the final passage)
       (let [endings (filter d/ending? (vals (:adventure/passages adv)))]
         (is (= 1 (count endings)))))))
+
+(deftest japanese-intro-is-valid-and-teaches-by-looping
+  (let [adv      (samples/japanese-intro-adventure)
+        start    (d/start-passage adv)
+        start-id (:adventure/start adv)
+        passages (vals (:adventure/passages adv))
+        blob     (str/join " " (concat (map :passage/text passages)
+                                       (mapcat #(map :choice/label (:passage/choices %)) passages)))]
+    (testing "the Japanese intro passes validation (reachable, no dangling, has an ending)"
+      (is (d/valid? adv)))
+    (testing "it teaches the three target phrases"
+      (is (str/includes? blob "はじめまして"))
+      (is (str/includes? blob "です"))
+      (is (str/includes? blob "よろしく")))
+    (testing "the first question offers a correct answer plus wrong ones"
+      (is (>= (count (d/choices start)) 3)))
+    (testing "exactly one ending (the success payoff)"
+      (is (= 1 (count (filter d/ending? passages)))))
+    (testing "wrong answers loop back: at least one choice leads to a reaction whose only option returns to that same question"
+      (let [loops (for [c   (d/choices start)
+                        :let [r (d/next-passage adv c)]
+                        :when (and r
+                                   (= 1 (count (d/choices r)))
+                                   (= start-id (:choice/target (first (d/choices r)))))]
+                    r)]
+        (is (seq loops))))))
