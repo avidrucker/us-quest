@@ -56,6 +56,25 @@
           db1 (e/put-adventure db/default-db adv)]
       (is (= adv (get-in db1 [:library (:adventure/id adv)]))))))
 
+(deftest opening-a-shared-link
+  (let [shared (samples/sample-adventure)]
+    (testing "A fresh recipient opening a link gets exactly the shared adventure and starts playing (no sample seeded)"
+      (let [db1 (e/initial-db-with-share nil shared)]
+        (is (= shared (get-in db1 [:library (:adventure/id shared)])))
+        (is (= 1 (count (:library db1))))
+        (is (= :player (:route db1)))
+        (is (= [(:adventure/start shared)] (get-in db1 [:player :trail])))))
+    (testing "A recipient who already has a library keeps it, with the shared adventure added"
+      (let [mine (samples/sample-adventure)
+            db1  (e/initial-db-with-share {(:adventure/id mine) mine} shared)]
+        (is (= 2 (count (:library db1))))
+        (is (= mine (get-in db1 [:library (:adventure/id mine)])))
+        (is (= shared (get-in db1 [:library (:adventure/id shared)])))))
+    (testing "With no incoming adventure, init behaves normally (library route, sample seeded)"
+      (let [db1 (e/initial-db-with-share nil nil)]
+        (is (= :library (:route db1)))
+        (is (= 1 (count (:library db1))))))))
+
 (deftest authoring-in-the-editor
   (let [adv    (samples/sample-adventure)
         adv-id (:adventure/id adv)

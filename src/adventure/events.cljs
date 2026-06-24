@@ -27,6 +27,31 @@
   [db adventure]
   (assoc-in db [:library (:adventure/id adventure)] adventure))
 
+(defn initial-db-with-share
+  "Builds the initial db. When an `incoming` adventure arrived via a share link,
+   it is added to whatever library the recipient already had (no sample is
+   seeded) and starts playing immediately. Otherwise falls back to the normal
+   init from `stored-library` (seeding the sample on first run)."
+  [stored-library incoming]
+  (if incoming
+    (-> db/default-db
+        (assoc :library (or stored-library {}))
+        (assoc-in [:library (:adventure/id incoming)] incoming)
+        (assoc :route :player
+               :player {:adventure-id (:adventure/id incoming)
+                        :trail        [(:adventure/start incoming)]}))
+    (initial-db stored-library)))
+
+(defn share-ready
+  "Records a freshly-built share URL so the UI can display/copy it."
+  [db [_ url]]
+  (assoc db :ui/share-url url))
+
+(defn dismiss-share
+  "Clears any displayed share URL."
+  [db _]
+  (dissoc db :ui/share-url))
+
 (defn start-playthrough
   "Begins playing adventure `adventure-id`: routes to the player and starts the
    trail at the adventure's start passage."
@@ -141,11 +166,12 @@
 
 (rf/reg-event-fx
  ::initialize-db
- [(rf/inject-cofx :store/library)]
- (fn [{:store/keys [library]} _]
-   (let [db (initial-db library)]
-     {:db                  db
-      :store/save-library! (:library db)})))
+ [(rf/inject-cofx :store/library)
+  (rf/inject-cofx :share/incoming)]
+ (fn [{:store/keys [library] :share/keys [incoming]} _]
+   (let [db (initial-db-with-share library incoming)]
+     (cond-> {:db db :store/save-library! (:library db)}
+       incoming (assoc :share/clear-hash! true)))))
 
 (rf/reg-event-fx
  ::save-adventure
@@ -180,3 +206,11 @@
  (fn [{:keys [db]} _]
    (let [db' (commit-working db)]
      {:db db' :store/save-library! (:library db')})))
+
+(rf/reg-event-db ::share-ready    share-ready)
+(rf/reg-event-db ::dismiss-share  dismiss-share)
+
+(rf/reg-event-fx
+ ::share-adventure
+ (fn [_ [_ adventure]]
+   {:share/make-link! adventure}))

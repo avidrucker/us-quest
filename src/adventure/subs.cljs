@@ -5,9 +5,10 @@
    [re-frame.core :as rf]
    [adventure.domain :as d]))
 
-(rf/reg-sub ::route   (fn [db _] (:route db)))
-(rf/reg-sub ::library (fn [db _] (:library db)))
-(rf/reg-sub ::trail   (fn [db _] (get-in db [:player :trail])))
+(rf/reg-sub ::route     (fn [db _] (:route db)))
+(rf/reg-sub ::library   (fn [db _] (:library db)))
+(rf/reg-sub ::trail     (fn [db _] (get-in db [:player :trail])))
+(rf/reg-sub ::share-url (fn [db _] (:ui/share-url db)))
 
 (rf/reg-sub
  ::library-list

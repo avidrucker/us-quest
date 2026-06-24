@@ -22,11 +22,20 @@
 ;; Library
 ;; ---------------------------------------------------------------------------
 
+(defn share-banner []
+  (when-let [url @(rf/subscribe [::subs/share-url])]
+    [:div.share-banner
+     [:span.share-msg "Link copied! 💛 Send it to her:"]
+     [:input.share-url {:read-only true :value url
+                        :on-focus #(.select (.-target %))}]
+     [:button.btn.ghost {:on-click #(rf/dispatch [::events/dismiss-share])} "✕"]]))
+
 (defn library-view []
   (let [adventures @(rf/subscribe [::subs/library-list])]
     [:section.library
      [:h1 "Adventures in Us " [:span.heart "💛"]]
      [:p.subtitle "A little choose-your-own-adventure, made for you."]
+     [share-banner]
      [:button.btn.primary.new-btn
       {:on-click #(rf/dispatch [::events/start-new-adventure])} "+ New adventure"]
      [:ul.adventure-list
@@ -37,6 +46,8 @@
          [:div.card-actions
           [:button.btn.ghost
            {:on-click #(rf/dispatch [::events/edit-adventure (:adventure/id adv)])} "Edit"]
+          [:button.btn.ghost
+           {:on-click #(rf/dispatch [::events/share-adventure adv])} "Share"]
           [:button.btn.primary
            {:on-click #(rf/dispatch [::events/start-playthrough (:adventure/id adv)])} "Play ▸"]]])]]))
 
