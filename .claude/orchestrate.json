@@ -1,0 +1,22 @@
+{
+  "host": "github",
+  "languages": ["clojurescript"],
+  "mode": "fleet",
+  "issueLimit": 50,
+  "roster": ["APPLE", "BANANA", "CHERRY", "DRAGONFRUIT", "ELDERBERRY", "FIG", "GRAPE", "HONEYDEW"],
+  "worktreeBranchPattern": "^(?<agent>[a-z]+)/issue-(?<issue>\\d+)",
+  "defaultBase": "origin/main",
+  "paths": { "worktreeDir": ".claude/worktrees" },
+  "pmtools": { "home": null, "port": "js" },
+  "enrichment": {
+    "statusCommand": "pmtools status",
+    "claimCommand": "pmtools claim",
+    "preflightCommand": "pmtools preflight",
+    "closeCommand": "pmtools close"
+  },
+  "storage": {
+    "dbPath": null,
+    "velocity": { "enabled": false },
+    "errors": { "enabled": false }
+  }
+}

@@ -5,3 +5,8 @@
 /.cpcache
 /.nrepl-port
 *.log
+/.claude/worktrees/
+
+# Personal adventure content drafts — keep private, do not push
+/content/
+/docs/research-questions.md
