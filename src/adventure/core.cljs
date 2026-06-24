@@ -4,6 +4,7 @@
    [reagent.dom.client :as rdomc]
    [re-frame.core :as rf]
    [adventure.events :as events]
+   [adventure.fx]
    [adventure.subs]
    [adventure.views :as views]))
 

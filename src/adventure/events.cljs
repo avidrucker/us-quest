@@ -11,11 +11,20 @@
 ;; Handlers (pure)
 ;; ---------------------------------------------------------------------------
 
-(defn initialize-db
-  "Builds the initial app-db, seeding the library with the sample adventure."
-  [_ _]
-  (let [adv (samples/sample-adventure)]
-    (assoc-in db/default-db [:library (:adventure/id adv)] adv)))
+(defn initial-db
+  "Returns the initial app-db given a `stored-library` (possibly nil/empty). When
+   a stored library exists it is used as-is; otherwise the library is seeded with
+   the sample adventure."
+  [stored-library]
+  (if (seq stored-library)
+    (assoc db/default-db :library stored-library)
+    (let [adv (samples/sample-adventure)]
+      (assoc-in db/default-db [:library (:adventure/id adv)] adv))))
+
+(defn put-adventure
+  "Stores `adventure` in the library of `db` under its id."
+  [db adventure]
+  (assoc-in db [:library (:adventure/id adventure)] adventure))
 
 (defn start-playthrough
   "Begins playing adventure `adventure-id`: routes to the player and starts the
@@ -53,7 +62,21 @@
 ;; Registrations
 ;; ---------------------------------------------------------------------------
 
-(rf/reg-event-db ::initialize-db    initialize-db)
+(rf/reg-event-fx
+ ::initialize-db
+ [(rf/inject-cofx :store/library)]
+ (fn [{:store/keys [library]} _]
+   (let [db (initial-db library)]
+     {:db                  db
+      :store/save-library! (:library db)})))
+
+(rf/reg-event-fx
+ ::save-adventure
+ (fn [{:keys [db]} [_ adventure]]
+   (let [db' (put-adventure db adventure)]
+     {:db                  db'
+      :store/save-library! (:library db')})))
+
 (rf/reg-event-db ::start-playthrough start-playthrough)
 (rf/reg-event-db ::choose           choose)
 (rf/reg-event-db ::go-back          go-back)

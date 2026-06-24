@@ -39,8 +39,19 @@
                        (e/choose [::e/choose choice]) (e/restart [::e/restart]))]
         (is (= [start] (get-in db2 [:player :trail])))))))
 
-(deftest initializing
-  (testing "initialize-db seeds the library with the sample adventure and lands on the library route"
-    (let [db1 (e/initialize-db nil nil)]
+(deftest initial-db-from-storage
+  (testing "With no stored library, the initial db is seeded with the sample adventure"
+    (let [db1 (e/initial-db nil)]
       (is (= 1 (count (:library db1))))
-      (is (= :library (:route db1))))))
+      (is (= :library (:route db1)))))
+  (testing "With a stored library, the initial db uses it verbatim (no re-seed)"
+    (let [adv (samples/sample-adventure)
+          lib {(:adventure/id adv) adv}
+          db1 (e/initial-db lib)]
+      (is (= lib (:library db1))))))
+
+(deftest saving-an-adventure
+  (testing "put-adventure stores an adventure in the library under its id"
+    (let [adv (samples/sample-adventure)
+          db1 (e/put-adventure db/default-db adv)]
+      (is (= adv (get-in db1 [:library (:adventure/id adv)]))))))
