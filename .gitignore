@@ -10,3 +10,10 @@
 # Personal adventure content drafts — keep private, do not push
 /content/
 /docs/research-questions.md
+
+# Secrets / personal info — never commit
+SECRETS.txt
+.env
+.env.*
+*.secret
+*.secrets
