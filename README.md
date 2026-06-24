@@ -49,6 +49,14 @@ npm run release  # optimized build into public/js
 `npm run e2e` uses the system Chrome (`channel: 'chrome'`); its `webServer`
 config starts `npm run dev` automatically, so no separate server is needed.
 
+## Deploy
+
+Deploys are **automatic**: every push to `main` runs
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), which gates on
+`npm test`, builds an optimized release, and publishes it to the `gh-pages`
+branch (served at the live demo above). No manual build-and-push step. You can
+also trigger it by hand from the Actions tab (`workflow_dispatch`).
+
 ## Tech
 
 ClojureScript · [shadow-cljs](https://github.com/thheller/shadow-cljs) ·

@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+# Auto-deploy on every push to main: unit tests gate, then an optimized
+# release build is published to the gh-pages branch (served by Pages).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# peaceiris/actions-gh-pages pushes the build to the gh-pages branch.
+permissions:
+  contents: write
+
+# Never let two deploys race; the newest push wins.
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java (shadow-cljs runs on the JVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Cache Maven deps (shadow-cljs JVM classpath)
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: m2-${{ hashFiles('shadow-cljs.edn') }}
+          restore-keys: m2-
+
+      # Skip the Playwright browser download — e2e isn't part of the deploy gate.
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: Unit tests (deploy gate)
+        run: npm test
+
+      - name: Optimized release build
+        run: npm run release
+
+      # public/ at this point holds index.html, global.css, and the freshly
+      # built js/main.js. peaceiris adds .nojekyll automatically.
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
+          commit_message: "Deploy ${{ github.sha }} (auto)"
