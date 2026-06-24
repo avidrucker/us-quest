@@ -197,7 +197,11 @@
       :store/save-library! (:library db')})))
 
 (rf/reg-event-db ::start-playthrough start-playthrough)
-(rf/reg-event-db ::choose           choose)
+(rf/reg-event-fx
+ ::choose
+ (fn [{:keys [db]} event]
+   {:db               (choose db event)
+    :scroll/to-active true}))
 (rf/reg-event-db ::go-back          go-back)
 (rf/reg-event-db ::restart          restart)
 (rf/reg-event-db ::go-to-library    go-to-library)
