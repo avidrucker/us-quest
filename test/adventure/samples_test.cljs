@@ -58,3 +58,12 @@
                                    (= start-id (:choice/target (first (d/choices r)))))]
                     r)]
         (is (seq loops))))))
+
+(deftest built-ins-have-stable-distinct-ids
+  (testing "each built-in returns the same :adventure/id across calls (stable identity)"
+    (is (= (:adventure/id (samples/sample-adventure))   (:adventure/id (samples/sample-adventure))))
+    (is (= (:adventure/id (samples/cogbias-intro-adventure))  (:adventure/id (samples/cogbias-intro-adventure))))
+    (is (= (:adventure/id (samples/japanese-intro-adventure)) (:adventure/id (samples/japanese-intro-adventure)))))
+  (testing "the built-ins have distinct ids"
+    (let [ids (map :adventure/id (samples/built-in-adventures))]
+      (is (= (count ids) (count (set ids)))))))

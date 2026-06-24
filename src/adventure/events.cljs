@@ -12,18 +12,44 @@
 ;; Handlers (pure)
 ;; ---------------------------------------------------------------------------
 
-(defn initial-db
-  "Returns the initial app-db given a `stored-library` (possibly nil/empty). When
-   a stored library exists it is used as-is; otherwise the library is seeded with
-   the built-in demo adventures."
-  [stored-library]
-  (if (seq stored-library)
-    (assoc db/default-db :library stored-library)
-    (let [demos [(samples/sample-adventure)
-                 (samples/cogbias-intro-adventure)
-                 (samples/japanese-intro-adventure)]]
-      (assoc db/default-db :library
-             (into {} (map (juxt :adventure/id identity)) demos)))))
+(defn merge-built-ins
+  "Adds each built-in in `built-ins` whose id is NOT in the `seeded` set to
+   `library`, returning {:library .. :seeded ..}. Entries already present are
+   never overwritten, and ids already in `seeded` are skipped — so a demo the
+   user deleted is not resurrected, and existing demos are not duplicated."
+  [library seeded built-ins]
+  (reduce (fn [acc demo]
+            (let [id (:adventure/id demo)]
+              (if (contains? (:seeded acc) id)
+                acc
+                (-> acc
+                    (assoc-in [:library id] demo)
+                    (update :seeded conj id)))))
+          {:library (or library {}) :seeded (or seeded #{})}
+          built-ins))
+
+(defn seed-or-merge
+  "Computes the initial {:library .. :seeded ..} from what's in storage:
+   - **Brand-new visitor** (empty `stored-library`): seed all `built-ins`.
+   - **Pre-stable-id visitor** (`seeded` is nil): retire legacy auto-seeded demos
+     (those whose title is in `built-in-titles`) and seed the stable demos;
+     user-authored adventures (other titles) are kept.
+   - **Returning visitor** (a `seeded` marker exists): add only built-ins not yet
+     seeded; never overwrite, never resurrect a deleted demo.
+   User-authored adventures are always preserved."
+  [stored-library seeded built-ins built-in-titles]
+  (cond
+    (empty? stored-library)
+    (let [lib (into {} (map (juxt :adventure/id identity)) built-ins)]
+      {:library lib :seeded (set (keys lib))})
+
+    (nil? seeded)
+    (let [kept (into {} (remove (fn [[_ a]] (contains? built-in-titles (:adventure/title a))))
+                     stored-library)]
+      (merge-built-ins kept #{} built-ins))
+
+    :else
+    (merge-built-ins stored-library seeded built-ins)))
 
 (defn put-adventure
   "Stores `adventure` in the library of `db` under its id."
@@ -31,10 +57,10 @@
   (assoc-in db [:library (:adventure/id adventure)] adventure))
 
 (defn initial-db-with-share
-  "Builds the initial db. When an `incoming` adventure arrived via a share link,
-   it is added to whatever library the recipient already had (no sample is
-   seeded) and starts playing immediately. Otherwise falls back to the normal
-   init from `stored-library` (seeding the sample on first run)."
+  "Builds the player db for an `incoming` shared adventure: it is added to
+   whatever library the recipient already had (no demos seeded) and starts
+   playing immediately. The no-incoming case is handled by `seed-or-merge` in
+   the initialize-db effect."
   [stored-library incoming]
   (if incoming
     (-> db/default-db
@@ -43,7 +69,7 @@
         (assoc :route :player
                :player {:adventure-id (:adventure/id incoming)
                         :trail        [(:adventure/start incoming)]}))
-    (initial-db stored-library)))
+    (assoc db/default-db :library (or stored-library {}))))
 
 (defn share-ready
   "Records a freshly-built share URL so the UI can display/copy it."
@@ -186,11 +212,17 @@
 (rf/reg-event-fx
  ::initialize-db
  [(rf/inject-cofx :store/library)
+  (rf/inject-cofx :store/seeded)
   (rf/inject-cofx :share/incoming)]
- (fn [{:store/keys [library] :share/keys [incoming]} _]
-   (let [db (initial-db-with-share library incoming)]
-     (cond-> {:db db :store/save-library! (:library db)}
-       incoming (assoc :share/clear-hash! true)))))
+ (fn [{:store/keys [library seeded] :share/keys [incoming]} _]
+   (if incoming
+     (let [db (initial-db-with-share library incoming)]
+       {:db db :store/save-library! (:library db) :share/clear-hash! true})
+     (let [{lib :library seen :seeded}
+           (seed-or-merge library seeded (samples/built-in-adventures) (samples/built-in-titles))]
+       {:db                  (assoc db/default-db :library lib)
+        :store/save-library! lib
+        :store/save-seeded!  seen}))))
 
 (rf/reg-event-fx
  ::save-adventure

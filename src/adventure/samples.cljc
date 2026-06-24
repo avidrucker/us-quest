@@ -9,8 +9,17 @@
   (:require
    [adventure.domain :as d]))
 
+;; Stable adventure ids for the built-in demos. These are deterministic so a
+;; demo has the same `:adventure/id` across sessions — the key that lets
+;; `events/seed-or-merge` add a *missing* demo to a returning user's library
+;; without duplicating ones they already have. (Passage ids stay random per
+;; build; the merge key is the adventure id.)
+(def sample-adventure-id   #uuid "115a3e1d-0000-4000-8000-000000000001")
+(def cogbias-adventure-id  #uuid "115a3e1d-0000-4000-8000-000000000002")
+(def japanese-adventure-id #uuid "115a3e1d-0000-4000-8000-000000000003")
+
 (defn sample-adventure
-  "Returns a fresh copy of the demo adventure (fixed structure, new ids)."
+  "Returns a fresh copy of the demo adventure (fixed structure + stable id)."
   []
   (let [q-ready  (d/new-passage "Ready for a tiny adventure about us? 💛")
         q-meet   (d/new-passage "Easy one first — where did we first meet?")
@@ -21,7 +30,7 @@
         e-nerves (d/new-passage "Caught me. You make me nervous in the very best way. 💛")
         e-vibe   (d/new-passage "The vibe was you. It always is. ✨💛")
         id       :passage/id]
-    (-> (d/new-adventure "How well do you know us? 💛")
+    (-> (assoc (d/new-adventure "How well do you know us? 💛") :adventure/id sample-adventure-id)
         (d/add-passage q-ready)        ; first passage → the start
         (d/add-passage q-meet)
         (d/add-passage q-moment)
@@ -60,7 +69,7 @@
         id  :passage/id
         ;; link `from` to `to` with a single labelled choice (a linear step)
         step (fn [adv from to label] (d/add-choice adv (id from) {:choice/label label :choice/target (id to)}))]
-    (-> (d/new-adventure "Adventures in Cognitive Biases (intro) 🧠")
+    (-> (assoc (d/new-adventure "Adventures in Cognitive Biases (intro) 🧠") :adventure/id cogbias-adventure-id)
         (d/add-passage p1)             ; first passage → the start
         (d/add-passage p2)
         (d/add-passage p3)
@@ -108,7 +117,7 @@
         id      :passage/id
         ;; a "try again" loop: `from`'s single choice points back to `to`
         retry (fn [adv from to] (d/add-choice adv (id from) {:choice/label "↩ Try again" :choice/target (id to)}))]
-    (-> (d/new-adventure "Hajimemashite! A first meeting in Japanese 🇯🇵")
+    (-> (assoc (d/new-adventure "Hajimemashite! A first meeting in Japanese 🇯🇵") :adventure/id japanese-adventure-id)
         (d/add-passage q-greet)        ; first passage → the start
         (d/add-passage q-name)
         (d/add-passage q-close)
@@ -135,3 +144,16 @@
         (retry r-konbanwa  q-name)
         (retry r-sayounara q-name)
         (retry r-thanks2   q-close))))
+
+(defn built-in-adventures
+  "Returns fresh copies of all built-in demo adventures (each with its stable id)."
+  []
+  [(sample-adventure)
+   (cogbias-intro-adventure)
+   (japanese-intro-adventure)])
+
+(defn built-in-titles
+  "Set of the built-in demo titles. Used to retire legacy random-id auto-seeds
+   from a pre-stable-id library during the one-time migration."
+  []
+  (into #{} (map :adventure/title) (built-in-adventures)))

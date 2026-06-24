@@ -13,4 +13,7 @@
       (is (= lib (storage/deserialize (storage/serialize lib))))))
   (testing "deserializing nothing yields nil"
     (is (nil? (storage/deserialize nil)))
-    (is (nil? (storage/deserialize "")))))
+    (is (nil? (storage/deserialize ""))))
+  (testing "the seeded-demos marker (a set of uuids) round-trips intact"
+    (let [ids (set (map :adventure/id (samples/built-in-adventures)))]
+      (is (= ids (storage/deserialize (storage/serialize ids)))))))

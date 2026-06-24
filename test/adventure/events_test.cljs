@@ -39,16 +39,35 @@
                        (e/choose [::e/choose choice]) (e/restart [::e/restart]))]
         (is (= [start] (get-in db2 [:player :trail])))))))
 
-(deftest initial-db-from-storage
-  (testing "With no stored library, the initial db is seeded with the built-in demo adventures"
-    (let [db1 (e/initial-db nil)]
-      (is (= 3 (count (:library db1))))
-      (is (= :library (:route db1)))))
-  (testing "With a stored library, the initial db uses it verbatim (no re-seed)"
-    (let [adv (samples/sample-adventure)
-          lib {(:adventure/id adv) adv}
-          db1 (e/initial-db lib)]
-      (is (= lib (:library db1))))))
+(deftest seeding-and-merging-demos
+  (let [built-ins (samples/built-in-adventures)
+        titles    (samples/built-in-titles)
+        ids       (set (map :adventure/id built-ins))]
+    (testing "Brand-new visitor: an empty library seeds all built-ins; seeded = their ids"
+      (let [{:keys [library seeded]} (e/seed-or-merge {} nil built-ins titles)]
+        (is (= ids (set (keys library))))
+        (is (= ids seeded))))
+    (testing "Pre-stable-id visitor (no seeded marker): legacy auto-seeds retired, stable demos seeded, user adventures kept"
+      (let [legacy (assoc (samples/sample-adventure) :adventure/id (random-uuid)) ; same title, old random id
+            mine   (d/new-adventure "My own story")
+            stored {(:adventure/id legacy) legacy
+                    (:adventure/id mine)   mine}
+            {:keys [library seeded]} (e/seed-or-merge stored nil built-ins titles)]
+        (is (= ids seeded))
+        (is (contains? library (:adventure/id mine)))                ; user adventure kept
+        (is (every? #(contains? library %) ids))                     ; all stable demos present
+        (is (= 1 (count (filter #(= "How well do you know us? 💛" (:adventure/title %))
+                                (vals library)))))))                 ; legacy duplicate retired
+    (testing "Returning visitor: only built-ins not yet in `seeded` are added; no duplicates"
+      (let [sample (samples/sample-adventure)
+            stored {(:adventure/id sample) sample}
+            {:keys [library seeded]} (e/seed-or-merge stored #{(:adventure/id sample)} built-ins titles)]
+        (is (= ids (set (keys library))))   ; sample + the two not-yet-seeded
+        (is (= ids seeded))))
+    (testing "A demo the user deleted (id in seeded, absent from library) is NOT resurrected"
+      (let [mine (d/new-adventure "My own story")
+            {:keys [library]} (e/seed-or-merge {(:adventure/id mine) mine} ids built-ins titles)]
+        (is (= #{(:adventure/id mine)} (set (keys library))))))))
 
 (deftest saving-an-adventure
   (testing "put-adventure stores an adventure in the library under its id"
@@ -64,16 +83,17 @@
         (is (= 1 (count (:library db1))))
         (is (= :player (:route db1)))
         (is (= [(:adventure/start shared)] (get-in db1 [:player :trail])))))
-    (testing "A recipient who already has a library keeps it, with the shared adventure added"
-      (let [mine (samples/sample-adventure)
+    (testing "A recipient who already has a (different) adventure keeps it, with the shared one added"
+      (let [mine (samples/cogbias-intro-adventure)   ; distinct stable id from `shared`
             db1  (e/initial-db-with-share {(:adventure/id mine) mine} shared)]
         (is (= 2 (count (:library db1))))
         (is (= mine (get-in db1 [:library (:adventure/id mine)])))
         (is (= shared (get-in db1 [:library (:adventure/id shared)])))))
-    (testing "With no incoming adventure, init behaves normally (library route, demos seeded)"
-      (let [db1 (e/initial-db-with-share nil nil)]
+    (testing "With no incoming adventure, it returns the stored library on the library route (seeding is seed-or-merge's job)"
+      (let [mine (samples/cogbias-intro-adventure)
+            db1  (e/initial-db-with-share {(:adventure/id mine) mine} nil)]
         (is (= :library (:route db1)))
-        (is (= 3 (count (:library db1))))))))
+        (is (= {(:adventure/id mine) mine} (:library db1)))))))
 
 (deftest authoring-in-the-editor
   (let [adv    (samples/sample-adventure)

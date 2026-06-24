@@ -20,6 +20,16 @@
    (storage/write-library! library)))
 
 (rf/reg-cofx
+ :store/seeded
+ (fn [cofx _]
+   (assoc cofx :store/seeded (storage/read-seeded))))
+
+(rf/reg-fx
+ :store/save-seeded!
+ (fn [ids]
+   (storage/write-seeded! ids)))
+
+(rf/reg-cofx
  :share/incoming
  (fn [cofx _]
    (assoc cofx :share/incoming (share/adventure-from-location))))
