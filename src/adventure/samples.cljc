@@ -94,7 +94,7 @@
   (let [;; questions
         q-greet (assoc (d/new-passage "🎉 You're at a party. A friendly woman bows and smiles: 「はじめまして！」 (hajimemashite — \"nice to meet you\"). How do you reply?")
                        :passage/image "🎎")
-        q-name  (d/new-passage "She brightens: 「わたしは あいこ です。」 (watashi wa Aiko desu — \"I'm Aiko.\") Now introduce yourself — \"I'm ___.\"")
+        q-name  (d/new-passage "She brightens: 「わたしは あいこ です。おなまえは なんですか？」 (watashi wa Aiko desu, onamae wa nan desu ka — \"I'm Aiko. What's your name?\") Introduce yourself — \"I'm ___.\"")
         q-close (d/new-passage "あいこ smiles warmly and waits. Wrap up the introduction the polite way.")
         ;; reactions to wrong answers — each loops back to its question
         r-arigatou (d/new-passage "She tilts her head, amused: \"Thank you…? 😅\" — ありがとう (arigatou) means \"thank you,\" not a greeting.")
