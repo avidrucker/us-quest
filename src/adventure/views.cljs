@@ -70,7 +70,8 @@
 (defn step-view
   "One passage in the trail. `active?` marks the current (last) step."
   [{:step/keys [passage choice]} active?]
-  [:article.passage {:class (when active? "active")}
+  [:article.passage {:class (when active? "active")
+                     :id    (when active? "active-passage")}
    (passage-image (:passage/image passage))
    [:p.passage-text (:passage/text passage)]
    (when choice
