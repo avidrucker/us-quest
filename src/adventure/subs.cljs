@@ -19,7 +19,13 @@
 (rf/reg-sub
  ::current-adventure
  (fn [db _]
-   (get-in db [:library (get-in db [:player :adventure-id])])))
+   (or (get-in db [:player :preview-adventure])
+       (get-in db [:library (get-in db [:player :adventure-id])]))))
+
+(rf/reg-sub
+ ::previewing?
+ (fn [db _]
+   (some? (get-in db [:player :preview-adventure]))))
 
 (rf/reg-sub
  ::path-steps

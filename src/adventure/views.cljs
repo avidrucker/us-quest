@@ -38,18 +38,21 @@
      [share-banner]
      [:button.btn.primary.new-btn
       {:on-click #(rf/dispatch [::events/start-new-adventure])} "+ New adventure"]
-     [:ul.adventure-list
-      (for [adv adventures]
-        ^{:key (str (:adventure/id adv))}
-        [:li.adventure-card
-         [:span.adventure-title (:adventure/title adv)]
-         [:div.card-actions
-          [:button.btn.ghost
-           {:on-click #(rf/dispatch [::events/edit-adventure (:adventure/id adv)])} "Edit"]
-          [:button.btn.ghost
-           {:on-click #(rf/dispatch [::events/share-adventure adv])} "Share"]
-          [:button.btn.primary
-           {:on-click #(rf/dispatch [::events/start-playthrough (:adventure/id adv)])} "Play ▸"]]])]]))
+     (if (empty? adventures)
+       [:p.empty-state "No adventures yet — tap " [:b "+ New adventure"] " to write your first one. 💛"]
+       [:ul.adventure-list
+        (for [adv adventures]
+          ^{:key (str (:adventure/id adv))}
+          [:li.adventure-card
+           [:span.adventure-title (:adventure/title adv)]
+           [:div.card-actions
+            [:button.btn.ghost
+             {:on-click #(rf/dispatch [::events/edit-adventure (:adventure/id adv)])} "Edit"]
+            [:button.btn.ghost
+             {:on-click #(rf/dispatch [::events/share-adventure adv])} "Share"]
+            [:button.btn.primary
+             {:on-click #(rf/dispatch [::events/start-playthrough (:adventure/id adv)])} "Play ▸"]]])])
+     [:footer.made-with "made with 💛"]]))
 
 ;; ---------------------------------------------------------------------------
 ;; Player
@@ -87,12 +90,15 @@
    [:button.btn {:on-click #(rf/dispatch [::events/restart])} "Start over"]])
 
 (defn player-view []
-  (let [steps     @(rf/subscribe [::subs/path-steps])
-        current   @(rf/subscribe [::subs/current-passage])
-        at-start? @(rf/subscribe [::subs/at-start?])]
+  (let [steps       @(rf/subscribe [::subs/path-steps])
+        current     @(rf/subscribe [::subs/current-passage])
+        at-start?   @(rf/subscribe [::subs/at-start?])
+        previewing? @(rf/subscribe [::subs/previewing?])]
     [:section.player
      [:div.player-bar
-      [:button.btn.ghost {:on-click #(rf/dispatch [::events/go-to-library])} "← Library"]
+      (if previewing?
+        [:button.btn.ghost {:on-click #(rf/dispatch [::events/editor-resume])} "← Back to editing"]
+        [:button.btn.ghost {:on-click #(rf/dispatch [::events/go-to-library])} "← Library"])
       (when-not at-start?
         [:button.btn.ghost {:on-click #(rf/dispatch [::events/go-back])} "Back"])]
      [:div.trail
@@ -199,7 +205,9 @@
     [:section.editor
      [:div.editor-bar
       [:button.btn.ghost {:on-click #(rf/dispatch [::events/editor-cancel])} "← Cancel"]
-      [:button.btn.primary {:on-click #(rf/dispatch [::events/editor-save])} "Save 💾"]]
+      [:div.editor-bar-right
+       [:button.btn.ghost {:on-click #(rf/dispatch [::events/editor-preview])} "Preview ▸"]
+       [:button.btn.primary {:on-click #(rf/dispatch [::events/editor-save])} "Save 💾"]]]
      [:input.title-input
       {:value       (:adventure/title adv)
        :placeholder "Adventure title"

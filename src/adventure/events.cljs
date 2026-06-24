@@ -160,6 +160,22 @@
   [db _]
   (-> db (assoc :route :library) (assoc :editor {})))
 
+(defn editor-preview
+  "Plays the editor's working copy as a live preview, without saving it. The
+   working copy stays in `:editor` so editing can resume afterward."
+  [db _]
+  (let [adv (get-in db [:editor :adventure])]
+    (-> db
+        (assoc :route :player)
+        (assoc :player {:adventure-id      (:adventure/id adv)
+                        :preview-adventure adv
+                        :trail             [(:adventure/start adv)]}))))
+
+(defn editor-resume
+  "Returns from a preview back to the editor."
+  [db _]
+  (-> db (assoc :route :editor) (update :player dissoc :preview-adventure)))
+
 ;; ---------------------------------------------------------------------------
 ;; Registrations
 ;; ---------------------------------------------------------------------------
@@ -200,6 +216,8 @@
 (rf/reg-event-db ::editor-set-choice-target editor-set-choice-target)
 (rf/reg-event-db ::editor-remove-choice   editor-remove-choice)
 (rf/reg-event-db ::editor-cancel          editor-cancel)
+(rf/reg-event-db ::editor-preview         editor-preview)
+(rf/reg-event-db ::editor-resume          editor-resume)
 
 (rf/reg-event-fx
  ::editor-save
