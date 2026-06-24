@@ -41,3 +41,27 @@
  :<- [::trail]
  (fn [trail _]
    (<= (count trail) 1)))
+
+;; --- Editor ---------------------------------------------------------------
+
+(rf/reg-sub ::editor-adventure (fn [db _] (get-in db [:editor :adventure])))
+(rf/reg-sub ::editor-selected  (fn [db _] (get-in db [:editor :selected])))
+
+(rf/reg-sub
+ ::editor-passages
+ :<- [::editor-adventure]
+ (fn [adv _]
+   (when adv (vec (vals (:adventure/passages adv))))))
+
+(rf/reg-sub
+ ::editor-selected-passage
+ :<- [::editor-adventure]
+ :<- [::editor-selected]
+ (fn [[adv selected] _]
+   (when (and adv selected) (d/passage adv selected))))
+
+(rf/reg-sub
+ ::editor-problems
+ :<- [::editor-adventure]
+ (fn [adv _]
+   (when adv (d/validate adv))))

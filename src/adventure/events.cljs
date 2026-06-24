@@ -5,6 +5,7 @@
   (:require
    [re-frame.core :as rf]
    [adventure.db :as db]
+   [adventure.domain :as d]
    [adventure.samples :as samples]))
 
 ;; ---------------------------------------------------------------------------
@@ -59,6 +60,82 @@
   (assoc db :route :library))
 
 ;; ---------------------------------------------------------------------------
+;; Editor handlers (operate on a working copy at [:editor :adventure])
+;; ---------------------------------------------------------------------------
+
+(defn start-new-adventure
+  "Opens the editor on a fresh, untitled adventure (not yet in the library)."
+  [db _]
+  (let [adv (d/new-adventure "Untitled adventure")]
+    (assoc db :route :editor :editor {:adventure adv :selected nil})))
+
+(defn edit-adventure
+  "Opens the editor on a copy of the library adventure `adventure-id`, selecting
+   its start passage."
+  [db [_ adventure-id]]
+  (let [adv (get-in db [:library adventure-id])]
+    (assoc db :route :editor :editor {:adventure adv :selected (:adventure/start adv)})))
+
+(defn editor-select-passage [db [_ id]]
+  (assoc-in db [:editor :selected] id))
+
+(defn editor-set-title [db [_ title]]
+  (update-in db [:editor :adventure] d/set-title title))
+
+(defn editor-add-passage
+  "Adds a new (empty) passage to the working copy and selects it."
+  [db _]
+  (let [p (d/new-passage "")]
+    (-> db
+        (update-in [:editor :adventure] d/add-passage p)
+        (assoc-in [:editor :selected] (:passage/id p)))))
+
+(defn editor-set-passage-text [db [_ id text]]
+  (update-in db [:editor :adventure] d/set-passage-text id text))
+
+(defn editor-set-passage-image [db [_ id image]]
+  (update-in db [:editor :adventure] d/set-passage-image id image))
+
+(defn editor-set-start [db [_ id]]
+  (update-in db [:editor :adventure] d/set-start id))
+
+(defn editor-remove-passage [db [_ id]]
+  (-> db
+      (update-in [:editor :adventure] d/remove-passage id)
+      (update-in [:editor :selected] #(when (not= % id) %))))
+
+(defn editor-add-choice [db [_ passage-id]]
+  (update-in db [:editor :adventure] d/add-choice passage-id
+             {:choice/label "New choice" :choice/target nil}))
+
+(defn editor-set-choice-label [db [_ passage-id idx label]]
+  (update-in db [:editor :adventure] d/set-choice-label passage-id idx label))
+
+(defn editor-set-choice-target
+  "Sets the target of choice `idx` on `passage-id`. `target` may be nil (no
+   target yet), so this assoc's directly rather than via the domain fn."
+  [db [_ passage-id idx target]]
+  (assoc-in db [:editor :adventure :adventure/passages passage-id :passage/choices idx :choice/target]
+            target))
+
+(defn editor-remove-choice [db [_ passage-id idx]]
+  (update-in db [:editor :adventure] d/remove-choice passage-id idx))
+
+(defn commit-working
+  "Commits the editor's working copy into the library and clears the editor."
+  [db]
+  (let [adv (get-in db [:editor :adventure])]
+    (-> db
+        (assoc-in [:library (:adventure/id adv)] adv)
+        (assoc :route :library)
+        (assoc :editor {}))))
+
+(defn editor-cancel
+  "Discards the working copy and returns to the library."
+  [db _]
+  (-> db (assoc :route :library) (assoc :editor {})))
+
+;; ---------------------------------------------------------------------------
 ;; Registrations
 ;; ---------------------------------------------------------------------------
 
@@ -82,3 +159,24 @@
 (rf/reg-event-db ::go-back          go-back)
 (rf/reg-event-db ::restart          restart)
 (rf/reg-event-db ::go-to-library    go-to-library)
+
+(rf/reg-event-db ::start-new-adventure    start-new-adventure)
+(rf/reg-event-db ::edit-adventure         edit-adventure)
+(rf/reg-event-db ::editor-select-passage  editor-select-passage)
+(rf/reg-event-db ::editor-set-title       editor-set-title)
+(rf/reg-event-db ::editor-add-passage     editor-add-passage)
+(rf/reg-event-db ::editor-set-passage-text  editor-set-passage-text)
+(rf/reg-event-db ::editor-set-passage-image editor-set-passage-image)
+(rf/reg-event-db ::editor-set-start       editor-set-start)
+(rf/reg-event-db ::editor-remove-passage  editor-remove-passage)
+(rf/reg-event-db ::editor-add-choice      editor-add-choice)
+(rf/reg-event-db ::editor-set-choice-label  editor-set-choice-label)
+(rf/reg-event-db ::editor-set-choice-target editor-set-choice-target)
+(rf/reg-event-db ::editor-remove-choice   editor-remove-choice)
+(rf/reg-event-db ::editor-cancel          editor-cancel)
+
+(rf/reg-event-fx
+ ::editor-save
+ (fn [{:keys [db]} _]
+   (let [db' (commit-working db)]
+     {:db db' :store/save-library! (:library db')})))

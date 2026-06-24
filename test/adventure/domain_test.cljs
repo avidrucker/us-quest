@@ -75,6 +75,26 @@
         (is (nil? (d/passage adv' id2)))
         (is (empty? (d/choices (d/passage adv' id1))))))))
 
+(deftest more-editing-for-the-author
+  (let [p1  (d/new-passage "first")
+        id1 (:passage/id p1)
+        adv (-> (d/new-adventure "Us") (d/add-passage p1))]
+    (testing "The title can be changed"
+      (is (= "New Title" (-> adv (d/set-title "New Title") :adventure/title))))
+    (testing "A passage image can be set"
+      (is (= "💛" (-> adv (d/set-passage-image id1 "💛") (d/passage id1) :passage/image))))
+    (testing "A choice's label can be changed"
+      (let [adv' (-> adv
+                     (d/add-choice id1 {:choice/label "x" :choice/target id1})
+                     (d/set-choice-label id1 0 "Yes"))]
+        (is (= "Yes" (-> adv' (d/passage id1) :passage/choices (get 0) :choice/label)))))
+    (testing "A choice can be removed by index"
+      (let [adv' (-> adv
+                     (d/add-choice id1 {:choice/label "a" :choice/target id1})
+                     (d/add-choice id1 {:choice/label "b" :choice/target id1})
+                     (d/remove-choice id1 0))]
+        (is (= ["b"] (mapv :choice/label (d/choices (d/passage adv' id1)))))))))
+
 (defn- problem-types [problems]
   (set (map :problem/type problems)))
 

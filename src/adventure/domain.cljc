@@ -139,11 +139,38 @@
   (update-in adventure [:adventure/passages passage-id :passage/choices]
              (fnil conj []) choice))
 
+(>defn set-title
+  "Sets the title of `adventure`."
+  [adventure title]
+  [:adventure/adventure :adventure/title => :adventure/adventure]
+  (assoc adventure :adventure/title title))
+
 (>defn set-passage-text
   "Replaces the text of passage `passage-id` with `text`."
   [adventure passage-id text]
   [:adventure/adventure :passage/id :passage/text => :adventure/adventure]
   (assoc-in adventure [:adventure/passages passage-id :passage/text] text))
+
+(>defn set-passage-image
+  "Sets (or replaces) the optional image of passage `passage-id` (emoji or URL)."
+  [adventure passage-id image]
+  [:adventure/adventure :passage/id :string => :adventure/adventure]
+  (assoc-in adventure [:adventure/passages passage-id :passage/image] image))
+
+(>defn set-choice-label
+  "Sets the label of the choice at `choice-index` on passage `passage-id`."
+  [adventure passage-id choice-index label]
+  [:adventure/adventure :passage/id :int :choice/label => :adventure/adventure]
+  (assoc-in adventure
+            [:adventure/passages passage-id :passage/choices choice-index :choice/label]
+            label))
+
+(>defn remove-choice
+  "Removes the choice at `choice-index` from passage `passage-id`."
+  [adventure passage-id choice-index]
+  [:adventure/adventure :passage/id :int => :adventure/adventure]
+  (update-in adventure [:adventure/passages passage-id :passage/choices]
+             (fn [cs] (into (subvec cs 0 choice-index) (subvec cs (inc choice-index))))))
 
 (>defn set-start
   "Sets the start passage of `adventure` to `passage-id`."

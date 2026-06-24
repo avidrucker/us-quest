@@ -55,3 +55,38 @@
     (let [adv (samples/sample-adventure)
           db1 (e/put-adventure db/default-db adv)]
       (is (= adv (get-in db1 [:library (:adventure/id adv)]))))))
+
+(deftest authoring-in-the-editor
+  (let [adv    (samples/sample-adventure)
+        adv-id (:adventure/id adv)
+        db0    (seeded-db adv)]
+    (testing "Starting a new adventure opens the editor with a fresh working copy; the library is untouched until save"
+      (let [db1 (e/start-new-adventure db0 [::e/new])]
+        (is (= :editor (:route db1)))
+        (is (some? (get-in db1 [:editor :adventure])))
+        (is (= 1 (count (:library db1))))))
+    (testing "Editing an existing adventure loads it as the working copy with the start selected"
+      (let [db1 (e/edit-adventure db0 [::e/edit adv-id])]
+        (is (= adv (get-in db1 [:editor :adventure])))
+        (is (= (:adventure/start adv) (get-in db1 [:editor :selected])))))
+    (testing "Setting the title updates the working copy"
+      (let [db1 (-> db0 (e/edit-adventure [::e/edit adv-id]) (e/editor-set-title [::e/t "Renamed"]))]
+        (is (= "Renamed" (get-in db1 [:editor :adventure :adventure/title])))))
+    (testing "Adding a passage adds it to the working copy and selects it"
+      (let [db1 (-> db0 (e/edit-adventure [::e/edit adv-id]) (e/editor-add-passage [::e/add]))
+            sel (get-in db1 [:editor :selected])]
+        (is (contains? (get-in db1 [:editor :adventure :adventure/passages]) sel))))
+    (testing "Saving commits the working copy to the library and clears the editor"
+      (let [db1 (-> db0 (e/edit-adventure [::e/edit adv-id])
+                    (e/editor-set-title [::e/t "Saved!"])
+                    e/commit-working)]
+        (is (= "Saved!" (get-in db1 [:library adv-id :adventure/title])))
+        (is (= :library (:route db1)))
+        (is (= {} (:editor db1)))))
+    (testing "Cancelling discards edits and returns to the library with the original intact"
+      (let [db1 (-> db0 (e/edit-adventure [::e/edit adv-id])
+                    (e/editor-set-title [::e/t "nope"])
+                    (e/editor-cancel nil))]
+        (is (= :library (:route db1)))
+        (is (= {} (:editor db1)))
+        (is (= adv (get-in db1 [:library adv-id])))))))
